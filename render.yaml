@@ -1,0 +1,46 @@
+# render.yaml - Render.com Deployment Configuration
+services:
+  # Backend API Service
+  - type: web
+    name: fleetiq-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: fleetiq-frontend
+          property: url
+      - key: OPENAI_API_KEY
+        sync: false  # Set manually in Render dashboard
+    healthCheckPath: /api/health
+
+  # Frontend React App
+  - type: web
+    name: fleetiq-frontend
+    env: static
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/build
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: REACT_APP_API_URL
+        fromService:
+          type: web
+          name: fleetiq-backend
+          property: url
+      - key: REACT_APP_ENVIRONMENT
+        value: production
+
+# Database (optional for production)
+databases:
+  - name: fleetiq-db
+    databaseName: fleetiq
+    user: fleetiq_user
+    plan: free
