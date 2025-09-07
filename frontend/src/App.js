@@ -104,7 +104,7 @@ function App() {
             type: 'Tesla Model 3',
             status: 'active',
             battery: 87,
-            location: { lat: 34.0522, lng: -118.2437, address: 'Downtown LA' },
+            location: { lat: 34.0224, lng: -118.2851, address: 'USC Campus' },
             passenger: 'John D.',
             destination: 'LAX Airport',
             revenue: 45.20,
@@ -120,7 +120,7 @@ function App() {
             type: 'Tesla Model Y',
             status: 'charging',
             battery: 34,
-            location: { lat: 34.0689, lng: -118.4452, address: 'Santa Monica' },
+            location: { lat: 34.0522, lng: -118.2437, address: 'Downtown LA' },
             passenger: null,
             destination: null,
             revenue: 128.50,
@@ -136,7 +136,7 @@ function App() {
             type: 'Tesla Model S',
             status: 'active',
             battery: 72,
-            location: { lat: 34.1478, lng: -118.1445, address: 'Pasadena' },
+            location: { lat: 34.0407, lng: -118.2468, address: 'Arts District' },
             passenger: 'Maria S.',
             destination: 'Hollywood',
             revenue: 89.75,
@@ -155,9 +155,9 @@ function App() {
             type: 'Delivery Quad',
             status: 'active',
             battery: 61,
-            location: { lat: 34.0194, lng: -118.4108, address: 'Culver City' },
+            location: { lat: 34.0195, lng: -118.2909, address: 'Exposition Park' },
             package: 'Medical Supplies',
-            destination: 'Cedar-Sinai Hospital',
+            destination: 'USC Hospital',
             weight: '2.3kg',
             eta: 8,
             efficiency: 91,
@@ -169,7 +169,7 @@ function App() {
             type: 'Heavy Lifter',
             status: 'maintenance',
             battery: 0,
-            location: { lat: 34.0522, lng: -118.2437, address: 'Service Hub' },
+            location: { lat: 34.0330, lng: -118.2700, address: 'Service Hub Downtown' },
             package: null,
             destination: null,
             weight: '0kg',
@@ -400,28 +400,28 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Update alerts based on ACTUAL vehicle conditions
+  // Update alerts based on ACTUAL vehicle conditions - less frequently
   useEffect(() => {
     const alertInterval = setInterval(() => {
       generateSystemAlerts(vehicles, drones);
-    }, 10000); // Check every 10 seconds
+    }, 45000); // Check every 45 seconds instead of 10 seconds
 
     return () => clearInterval(alertInterval);
   }, [vehicles, drones]);
 
-  // Update historical stats for REAL percentage calculations
+  // Update historical stats for REAL percentage calculations - longer intervals
   useEffect(() => {
     const statsInterval = setInterval(() => {
       const currentStats = calculateFleetStats();
       
       setHistoricalStats(prev => ({
-        previousRevenue: prev.previousRevenue * 0.95 + currentStats.totalRevenue * 0.05, // Moving average
-        previousEfficiency: prev.previousEfficiency * 0.95 + currentStats.averageEfficiency * 0.05,
-        previousActiveVehicles: prev.previousActiveVehicles * 0.9 + currentStats.activeVehicles * 0.1,
-        previousAlerts: prev.previousAlerts * 0.9 + currentStats.activeAlerts * 0.1,
+        previousRevenue: prev.previousRevenue * 0.98 + currentStats.totalRevenue * 0.02, // Slower moving average
+        previousEfficiency: prev.previousEfficiency * 0.98 + currentStats.averageEfficiency * 0.02,
+        previousActiveVehicles: prev.previousActiveVehicles * 0.95 + currentStats.activeVehicles * 0.05,
+        previousAlerts: prev.previousAlerts * 0.95 + currentStats.activeAlerts * 0.05,
         lastUpdateTime: Date.now()
       }));
-    }, 30000); // Update every 30 seconds
+    }, 60000); // Update every 60 seconds instead of 30 seconds
 
     return () => clearInterval(statsInterval);
   }, [vehicles, alerts]);
