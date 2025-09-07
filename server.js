@@ -1,4 +1,4 @@
-// server.js - Express Backend with OpenAI Integration
+// server.js - Express Backend with OpenAI Integration (FIXED)
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -13,12 +13,12 @@ const PORT = process.env.PORT || 3001;
 
 // Security and compression middleware
 app.use(helmet({
-    contentSecurityPolicy: false, // Disable for development
+    contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false
 }));
 app.use(compression());
 
-// CORS configuration for Render deployment
+// CORS configuration
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
         ? [process.env.FRONTEND_URL, /\.render\.com$/]
@@ -31,7 +31,7 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve static files from React build (for single deployment)
+// Serve static files from React build
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, 'frontend/build')));
 }
@@ -41,7 +41,7 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-// TensorFlow Model (Mock for now - would load real model in production)
+// TensorFlow Models
 let batteryPredictionModel = null;
 let demandPredictionModel = null;
 
@@ -50,7 +50,6 @@ async function initializeModels() {
     try {
         console.log('Initializing TensorFlow.js models...');
         
-        // Create a simple sequential model for battery prediction
         batteryPredictionModel = tf.sequential({
             layers: [
                 tf.layers.dense({ inputShape: [4], units: 10, activation: 'relu' }),
@@ -59,7 +58,6 @@ async function initializeModels() {
             ]
         });
         
-        // Create demand prediction model
         demandPredictionModel = tf.sequential({
             layers: [
                 tf.layers.dense({ inputShape: [3], units: 8, activation: 'relu' }),
@@ -96,7 +94,6 @@ app.post('/api/ai/insights', async (req, res) => {
         const { vehicles, drones, alerts } = req.body;
         
         if (!process.env.OPENAI_API_KEY) {
-            // Return fallback insights when OpenAI is not configured
             return res.json({
                 insights: [
                     {
@@ -180,7 +177,6 @@ app.post('/api/ai/insights', async (req, res) => {
     } catch (error) {
         console.error('OpenAI API Error:', error);
         
-        // Fallback intelligent insights
         const fallbackInsights = {
             insights: [
                 {
@@ -214,7 +210,6 @@ app.post('/api/ai/optimize-route', async (req, res) => {
         const { vehicleId, currentLocation, destination, trafficData } = req.body;
 
         if (!process.env.OPENAI_API_KEY) {
-            // Fallback route optimization
             return res.json({
                 optimizedRoute: {
                     estimatedTime: Math.floor(Math.random() * 30) + 15,
@@ -254,7 +249,6 @@ app.post('/api/ai/optimize-route', async (req, res) => {
     } catch (error) {
         console.error('Route optimization error:', error);
         
-        // Fallback route optimization
         res.json({
             optimizedRoute: {
                 estimatedTime: Math.floor(Math.random() * 30) + 15,
@@ -275,12 +269,11 @@ app.post('/api/ml/predict-battery', async (req, res) => {
             throw new Error('Battery prediction model not loaded');
         }
 
-        // Prepare input data: [battery_level, efficiency, usage_hours, temperature]
         const inputData = tf.tensor2d([[
             vehicleData.battery / 100,
             vehicleData.efficiency / 100,
             vehicleData.usageHours || 8,
-            0.7 // normalized temperature
+            0.7
         ]]);
 
         const prediction = batteryPredictionModel.predict(inputData);
@@ -298,7 +291,6 @@ app.post('/api/ml/predict-battery', async (req, res) => {
     } catch (error) {
         console.error('TensorFlow prediction error:', error);
         
-        // Fallback prediction
         res.json({
             predictedBatteryLife: Math.random() * 12 + 6,
             confidence: 0.75,
@@ -315,7 +307,6 @@ app.post('/api/ml/predict-demand', async (req, res) => {
             throw new Error('Demand prediction model not loaded');
         }
 
-        // Prepare input data: [hour_normalized, is_downtown, weather_factor]
         const inputData = tf.tensor2d([[
             timeOfDay / 24,
             locationData.isDowntown ? 1 : 0,
@@ -337,7 +328,6 @@ app.post('/api/ml/predict-demand', async (req, res) => {
     } catch (error) {
         console.error('Demand prediction error:', error);
         
-        // Fallback prediction
         const timeBasedDemand = Math.sin((timeOfDay - 6) * Math.PI / 12) * 50 + 50;
         res.json({
             demandScore: Math.max(0, Math.min(100, Math.round(timeBasedDemand))),
@@ -352,7 +342,6 @@ app.post('/api/ml/predict-maintenance', async (req, res) => {
     try {
         const { vehicleId, mileage, batteryHealth, lastService } = req.body;
         
-        // Simple maintenance prediction algorithm
         const daysSinceService = lastService ? 
             Math.floor((Date.now() - new Date(lastService)) / (1000 * 60 * 60 * 24)) : 30;
         
@@ -376,7 +365,7 @@ app.post('/api/ml/predict-maintenance', async (req, res) => {
     }
 });
 
-// Serve React app for production (catch-all handler)
+// Serve React app for production
 if (process.env.NODE_ENV === 'production') {
     app.get('*', (req, res) => {
         res.sendFile(path.join(__dirname, 'frontend/build', 'index.html'));
@@ -402,183 +391,6 @@ async function startServer() {
         console.log(`🤖 OpenAI: ${process.env.OPENAI_API_KEY ? 'Enabled' : 'Disabled'}`);
         console.log(`🧠 TensorFlow: ${batteryPredictionModel ? 'Ready' : 'Loading...'}`);
         console.log(`🌐 Health check: http://localhost:${PORT}/api/health`);
-    });
-}
-
-app.post('/api/ai/optimize-route', async (req, res) => {
-    try {
-        const { vehicleId, currentLocation, destination, trafficData } = req.body;
-
-        if (!process.env.OPENAI_API_KEY) {
-            // Fallback route optimization
-            return res.json({
-                optimizedRoute: {
-                    estimatedTime: Math.floor(Math.random() * 30) + 15,
-                    batterySavings: Math.floor(Math.random() * 20) + 5,
-                    alternativeRoute: true,
-                    waypoints: ["Optimized waypoint 1", "Optimized waypoint 2"]
-                }
-            });
-        }
-
-        const prompt = `
-        Optimize route for vehicle ${vehicleId}:
-        From: ${currentLocation.address}
-        To: ${destination}
-        Current traffic: ${trafficData ? 'Heavy' : 'Light'}
-        
-        Provide optimization in JSON format:
-        {
-          "optimizedRoute": {
-            "estimatedTime": 25,
-            "batterySavings": 15,
-            "alternativeRoute": true,
-            "waypoints": ["point1", "point2"]
-          }
-        }
-        `;
-
-        const completion = await openai.chat.completions.create({
-            model: "gpt-3.5-turbo",
-            messages: [{ role: "user", content: prompt }],
-            max_tokens: 500
-        });
-
-        const routeData = JSON.parse(completion.choices[0].message.content);
-        res.json(routeData);
-
-    } catch (error) {
-        console.error('Route optimization error:', error);
-        
-        // Fallback route optimization
-        res.json({
-            optimizedRoute: {
-                estimatedTime: Math.floor(Math.random() * 30) + 15,
-                batterySavings: Math.floor(Math.random() * 20) + 5,
-                alternativeRoute: true,
-                waypoints: ["Optimized waypoint 1", "Optimized waypoint 2"]
-            }
-        });
-    }
-});
-
-// TensorFlow predictions
-app.post('/api/ml/predict-battery', async (req, res) => {
-    try {
-        const { vehicleData } = req.body;
-        
-        if (!batteryPredictionModel) {
-            throw new Error('Battery prediction model not loaded');
-        }
-
-        // Prepare input data: [battery_level, efficiency, usage_hours, temperature]
-        const inputData = tf.tensor2d([[
-            vehicleData.battery / 100,
-            vehicleData.efficiency / 100,
-            vehicleData.usageHours || 8,
-            0.7 // normalized temperature
-        ]]);
-
-        const prediction = batteryPredictionModel.predict(inputData);
-        const batteryLifeHours = await prediction.data();
-        
-        inputData.dispose();
-        prediction.dispose();
-
-        res.json({
-            predictedBatteryLife: Math.max(1, Math.min(24, batteryLifeHours[0] * 24)),
-            confidence: 0.85,
-            model: 'tensorflow'
-        });
-
-    } catch (error) {
-        console.error('TensorFlow prediction error:', error);
-        
-        // Fallback prediction
-        res.json({
-            predictedBatteryLife: Math.random() * 12 + 6,
-            confidence: 0.75,
-            model: 'fallback'
-        });
-    }
-});
-
-app.post('/api/ml/predict-demand', async (req, res) => {
-    try {
-        const { locationData, timeOfDay, weatherCondition } = req.body;
-        
-        if (!demandPredictionModel) {
-            throw new Error('Demand prediction model not loaded');
-        }
-
-        // Prepare input data: [hour_normalized, is_downtown, weather_factor]
-        const inputData = tf.tensor2d([[
-            timeOfDay / 24,
-            locationData.isDowntown ? 1 : 0,
-            weatherCondition === 'good' ? 1 : 0.5
-        ]]);
-
-        const prediction = demandPredictionModel.predict(inputData);
-        const demandScore = await prediction.data();
-        
-        inputData.dispose();
-        prediction.dispose();
-
-        res.json({
-            demandScore: Math.round(demandScore[0] * 100),
-            recommendation: demandScore[0] > 0.7 ? 'Deploy additional units' : 'Standard deployment',
-            confidence: 0.82
-        });
-
-    } catch (error) {
-        console.error('Demand prediction error:', error);
-        
-        // Fallback prediction
-        const timeBasedDemand = Math.sin((timeOfDay - 6) * Math.PI / 12) * 50 + 50;
-        res.json({
-            demandScore: Math.max(0, Math.min(100, Math.round(timeBasedDemand))),
-            recommendation: timeBasedDemand > 70 ? 'Deploy additional units' : 'Standard deployment',
-            confidence: 0.70
-        });
-    }
-});
-
-// Predictive maintenance
-app.post('/api/ml/predict-maintenance', async (req, res) => {
-    try {
-        const { vehicleId, mileage, batteryHealth, lastService } = req.body;
-        
-        // Simple maintenance prediction algorithm
-        const daysSinceService = lastService ? 
-            Math.floor((Date.now() - new Date(lastService)) / (1000 * 60 * 60 * 24)) : 30;
-        
-        const mileageFactor = (mileage || 50000) / 100000;
-        const batteryFactor = 1 - (batteryHealth || 90) / 100;
-        const timeFactor = daysSinceService / 90;
-        
-        const riskScore = Math.min(100, (mileageFactor + batteryFactor + timeFactor) * 100);
-        
-        res.json({
-            vehicleId,
-            riskScore: Math.round(riskScore),
-            daysUntilMaintenance: Math.max(1, Math.round((100 - riskScore) / 2)),
-            recommendedAction: riskScore > 70 ? 'immediate_service' : 'monitor',
-            confidence: 0.88
-        });
-
-    } catch (error) {
-        console.error('Maintenance prediction error:', error);
-        res.status(500).json({ error: 'Prediction failed' });
-    }
-});
-
-// Start server
-async function startServer() {
-    await initializeModels();
-    
-    app.listen(PORT, () => {
-        console.log(`FleetIQ Backend running on port ${PORT}`);
-        console.log(`Health check: http://localhost:${PORT}/api/health`);
     });
 }
 
